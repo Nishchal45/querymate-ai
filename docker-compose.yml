@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  # ── Application Database (query history, app metadata) ──
+  app_db:
+    image: postgres:16-alpine
+    container_name: querymate-app-db
+    environment:
+      POSTGRES_USER: ${APP_DB_USER:-querymate}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:-querymate_secret}
+      POSTGRES_DB: ${APP_DB_NAME:-querymate_app}
+    ports:
+      - "5432:5432"
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP_DB_USER:-querymate}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - querymate
+
+  # ── Target Database (e-commerce demo — users query this) ──
+  target_db:
+    image: postgres:16-alpine
+    container_name: querymate-target-db
+    environment:
+      POSTGRES_USER: ${TARGET_DB_USER:-demo_user}
+      POSTGRES_PASSWORD: ${TARGET_DB_PASSWORD:-demo_secret}
+      POSTGRES_DB: ${TARGET_DB_NAME:-ecommerce_demo}
+    ports:
+      - "5433:5432"
+    volumes:
+      - target_db_data:/var/lib/postgresql/data
+      - ./scripts/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./scripts/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TARGET_DB_USER:-demo_user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - querymate
+
+  # ── Redis (query caching + rate limiting) ──
+  redis:
+    image: redis:7-alpine
+    container_name: querymate-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - querymate
+
+volumes:
+  app_db_data:
+  target_db_data:
+  redis_data:
+
+networks:
+  querymate:
+    driver: bridge
