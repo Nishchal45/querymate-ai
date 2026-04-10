@@ -1,0 +1,49 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+.venv/
+venv/
+env/
+
+# ── Testing ──
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.mypy_cache/
+
+# ── Environment ──
+.env
+.env.local
+.env.*.local
+
+# ── Node / React ──
+node_modules/
+frontend/build/
+frontend/dist/
+.eslintcache
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Docker ──
+docker-compose.override.yml
+
+# ── Logs ──
+*.log
+logs/
