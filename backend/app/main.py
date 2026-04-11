@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.api.health import router as health_router
 from backend.core.config import settings
 from backend.core.logging import setup_logging
+from backend.core.target_database import close_target_pool, init_target_pool
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,9 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     setup_logging()
     logger.info('QueryMate AI starting — env=%s', settings.app_env)
+    init_target_pool()
     yield
+    close_target_pool()
     logger.info('QueryMate AI shutting down')
 
 
