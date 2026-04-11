@@ -4,7 +4,7 @@ with timeout enforcement, row limits, and structured error handling.
 
 import logging
 import time
-from typing import Any, Optional
+from typing import Any
 
 import psycopg2
 from pydantic import BaseModel

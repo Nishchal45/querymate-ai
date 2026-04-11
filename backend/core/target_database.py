@@ -2,7 +2,6 @@ import logging
 from contextlib import contextmanager
 from urllib.parse import urlparse
 
-import psycopg2
 from psycopg2 import pool
 
 from backend.core.config import settings
