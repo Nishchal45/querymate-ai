@@ -59,7 +59,7 @@ _BLOCKED_PATTERNS: list[tuple[re.Pattern, str]] = [
      'Access to pg_catalog is not allowed'),
     (re.compile(r'\binformation_schema\b', re.I),
      'Access to information_schema is not allowed'),
-    (re.compile(r'\bpg_stat\b', re.I),
+    (re.compile(r'\bpg_stat\w*', re.I),
      'Access to pg_stat tables is not allowed'),
 
     # Dangerous functions

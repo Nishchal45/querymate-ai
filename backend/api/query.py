@@ -14,7 +14,6 @@ import time
 import uuid
 
 from fastapi import APIRouter, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.schemas import QueryRequest, QueryResponse
 from backend.core.database import async_session
@@ -22,7 +21,7 @@ from backend.models.query_history import QueryHistory
 from backend.services import cache_service
 from backend.services.introspector import introspect_schema
 from backend.services.llm_service import generate_sql
-from backend.services.query_executor import QueryError, QueryResult, execute_query
+from backend.services.query_executor import QueryError, execute_query
 from backend.services.sql_validator import validate_sql
 
 logger = logging.getLogger(__name__)

@@ -74,8 +74,12 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - name: Seed target database
+      - name: Seed target database (schema)
         run: PGPASSWORD=demo_secret psql -h localhost -p 5433 -U demo_user -d ecommerce_demo -f scripts/01_schema.sql
+      - name: Seed target database (data)
+        run: PGPASSWORD=demo_secret psql -h localhost -p 5433 -U demo_user -d ecommerce_demo -f scripts/02_seed.sql
+      - name: Refresh PostgreSQL stats (for row_count introspection)
+        run: PGPASSWORD=demo_secret psql -h localhost -p 5433 -U demo_user -d ecommerce_demo -c "ANALYZE"
       - name: Run tests
         env:
           APP_DATABASE_URL: postgresql+asyncpg://querymate:querymate_secret@localhost:5432/querymate_app
@@ -102,7 +106,12 @@ jobs:
         run: test -f package.json && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
       - name: Build
         if: steps.check.outputs.exists == 'true'
         run: npm run build
