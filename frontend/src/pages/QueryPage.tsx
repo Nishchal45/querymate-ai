@@ -1,17 +1,36 @@
+import { useState } from 'react';
+import { ChartView } from '../components/ChartView';
+import { QueryHistory } from '../components/QueryHistory';
 import { QueryInput } from '../components/QueryInput';
+import { ResultsTable } from '../components/ResultsTable';
 import { SchemaExplorer } from '../components/SchemaExplorer';
 import { SqlDisplay } from '../components/SqlDisplay';
 import { useQuery } from '../hooks/useQuery';
 
 export function QueryPage() {
   const { loading, error, violations, response, submit } = useQuery();
+  const [historyKey, setHistoryKey] = useState(0);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+
+  const handleSubmit = async (question: string) => {
+    await submit(question);
+    setHistoryKey((k) => k + 1);
+  };
+
+  const handleHistorySelect = (question: string) => {
+    setPendingQuestion(question);
+    handleSubmit(question);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-      {/* Main column */}
       <div className="space-y-4">
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-          <QueryInput onSubmit={submit} loading={loading} />
+          <QueryInput
+            onSubmit={handleSubmit}
+            loading={loading}
+            initialValue={pendingQuestion}
+          />
         </div>
 
         {error && (
@@ -36,24 +55,18 @@ export function QueryPage() {
               executionTimeMs={response.execution_time_ms}
             />
             {response.result && (
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <div className="text-sm text-slate-600">
-                  Got <span className="font-semibold">{response.result.row_count}</span> rows
-                  in {response.result.execution_time_ms.toFixed(1)}ms
-                  {response.result.truncated && ' (truncated)'}
-                </div>
-                <div className="mt-2 text-xs text-slate-400">
-                  Results table & charts coming in the next PR.
-                </div>
-              </div>
+              <>
+                <ChartView result={response.result} />
+                <ResultsTable result={response.result} />
+              </>
             )}
           </div>
         )}
       </div>
 
-      {/* Sidebar */}
-      <div>
+      <div className="space-y-4">
         <SchemaExplorer />
+        <QueryHistory onSelect={handleHistorySelect} refreshKey={historyKey} />
       </div>
     </div>
   );
