@@ -102,7 +102,12 @@ jobs:
         run: test -f package.json && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
       - name: Build
         if: steps.check.outputs.exists == 'true'
         run: npm run build
