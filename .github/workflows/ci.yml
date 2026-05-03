@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check backend/ tests/
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: mypy backend/ --ignore-missing-imports
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres-app:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: querymate
+          POSTGRES_PASSWORD: querymate_secret
+          POSTGRES_DB: querymate_app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      postgres-target:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: demo_user
+          POSTGRES_PASSWORD: demo_secret
+          POSTGRES_DB: ecommerce_demo
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Seed target database (schema)
+        run: PGPASSWORD=demo_secret psql -h localhost -p 5433 -U demo_user -d ecommerce_demo -f scripts/01_schema.sql
+      - name: Seed target database (data)
+        run: PGPASSWORD=demo_secret psql -h localhost -p 5433 -U demo_user -d ecommerce_demo -f scripts/02_seed.sql
+      - name: Refresh PostgreSQL stats (for row_count introspection)
+        run: PGPASSWORD=demo_secret psql -h localhost -p 5433 -U demo_user -d ecommerce_demo -c "ANALYZE"
+      - name: Run tests
+        env:
+          APP_DATABASE_URL: postgresql+asyncpg://querymate:querymate_secret@localhost:5432/querymate_app
+          TARGET_DATABASE_URL: postgresql://demo_user:demo_secret@localhost:5433/ecommerce_demo
+          REDIS_URL: redis://localhost:6379/0
+          OPENAI_API_KEY: sk-test-fake-key
+          OPENAI_MODEL: gpt-4o-mini
+          APP_ENV: test
+        run: pytest tests/ -v --tb=short
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check if frontend exists
+        id: check
+        run: test -f package.json && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+      - name: Build
+        if: steps.check.outputs.exists == 'true'
+        run: npm run build
