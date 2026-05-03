@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
 
 const EXAMPLE_QUERIES = [
   'How many customers are in California?',
@@ -10,10 +10,15 @@ const EXAMPLE_QUERIES = [
 interface QueryInputProps {
   onSubmit: (question: string) => void;
   loading: boolean;
+  initialValue?: string | null;
 }
 
-export function QueryInput({ onSubmit, loading }: QueryInputProps) {
+export function QueryInput({ onSubmit, loading, initialValue }: QueryInputProps) {
   const [question, setQuestion] = useState('');
+
+  useEffect(() => {
+    if (initialValue) setQuestion(initialValue);
+  }, [initialValue]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
